@@ -12,7 +12,7 @@ const renderer = new THREE.WebGLRenderer({
 
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.setZ(30);
+camera.position.setZ(50);
 
 renderer.render(scene, camera);
 
@@ -30,9 +30,6 @@ scene.add(pointLight)
 
 const ambientLight = new THREE.AmbientLight(0xffffff)
 scene.add(ambientLight)
-
-const lightHelper = new THREE.PointLightHelper(pointLight)
-scene.add(lightHelper)
 
 const gridHelper = new THREE.GridHelper(200, 50)
 scene.add(gridHelper)
@@ -74,6 +71,9 @@ const ball = new THREE.Mesh(
 scene.add(ball)
 
 ball.position.z = 15;
+ball.position.setX(-10);
+chris.position.z = -5;
+chris.position.x = 2;
 
 function moveCamera() {
     const t = document.body.getBoundingClientRect().top;
@@ -85,13 +85,14 @@ function moveCamera() {
     chris.rotation.y += 0.01;
     chris.rotation.z += 0.01;
 
-    camera.position.x = t * -0.0002;
-    camera.position.y = t * -0.0002;
-    camera.position.z = t * -0.1;
+    camera.position.x = t * -0.002;
+    camera.position.y = t * -0.002;
+    camera.position.z = t * -0.01;
 
 }
 
 document.body.onscroll = moveCamera
+moveCamera();
 
 function animate() {
     requestAnimationFrame( animate );
