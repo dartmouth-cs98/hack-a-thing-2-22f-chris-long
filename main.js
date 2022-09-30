@@ -1,5 +1,8 @@
 import * as THREE from './node_modules/three/build/three.module.js';
 
+import * as POSTPROCESSING from './node_modules/postprocessing/build/postprocessing.mjs';
+
+/*
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
@@ -12,9 +15,6 @@ const renderer = new THREE.WebGLRenderer({
 
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.setZ(50);
-
-renderer.render(scene, camera);
 
 const geometry = new THREE.TorusGeometry(10, 3, 16, 100)
 const material = new THREE.MeshStandardMaterial( { color: 0xFF6347 } );
@@ -28,11 +28,8 @@ pointLight.position.set(5,5,5)
 
 scene.add(pointLight)
 
-const ambientLight = new THREE.AmbientLight(0xffffff)
+const ambientLight = new THREE.AmbientLight(0x555555)
 scene.add(ambientLight)
-
-const gridHelper = new THREE.GridHelper(200, 50)
-scene.add(gridHelper)
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
@@ -95,8 +92,6 @@ document.body.onscroll = moveCamera
 moveCamera();
 
 function animate() {
-    requestAnimationFrame( animate );
-
     torus.rotation.x += 0.01;
     torus.rotation.y += 0.005;
     torus.rotation.z += 0.01;
@@ -104,6 +99,146 @@ function animate() {
     controls.update();
 
     renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 
 animate()
+*/
+
+let scene, camera, renderer, cloudParticles = [], flash, chris, controls, initChrisX, initChrisY;
+function init() {
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60,window.innerWidth / window.innerHeight, 1, 1000);
+  camera.rotation.x = 1.16;
+  camera.rotation.y = -0.12;
+  camera.rotation.z = 0.27;
+
+  const ambient = new THREE.AmbientLight(0x555555);
+  scene.add(ambient);
+
+  const directionalLight = new THREE.DirectionalLight(0xff007f);
+  directionalLight.position.set(0,0,1);
+  scene.add(directionalLight);
+
+  let orangeLight = new THREE.PointLight(0xcc6600,50,450,1.7);
+  orangeLight.position.set(200,300,100);
+  scene.add(orangeLight);
+  
+  let redLight = new THREE.PointLight(0xd8547e,50,450,1.7);
+  redLight.position.set(-100,400,-100);
+  scene.add(redLight);
+  
+  let blueLight = new THREE.PointLight(0x3677ac,50,450,1.7);
+  blueLight.position.set(-100,400,-100);
+  scene.add(blueLight);
+
+  flash = new THREE.PointLight(0x062d89, 30, 500 ,1.7);
+  flash.position.set(200,300,100);
+  scene.add(flash);
+
+  const chrisTexture = new THREE.TextureLoader().load('./img/ProfilePhoto.png')
+
+  chris = new THREE.Mesh(
+    new THREE.BoxGeometry(3,3,3),
+    new THREE.MeshBasicMaterial({map: chrisTexture})
+  )
+  
+  scene.add(chris)
+  chris.position.x = (window.innerWidth / window.innerHeight) * 5;
+  chris.position.y = (window.innerWidth / window.innerHeight) * 10;
+  initChrisX = chris.position.x;
+  initChrisY = chris.position.y;
+  chris.position.z = -5;
+
+  const spaceTexture = new THREE.TextureLoader().load('./img/spaceGeneric.jpeg', function(texture){
+
+    const textureEffect = new POSTPROCESSING.TextureEffect({
+      blendFunction: POSTPROCESSING.BlendFunction.COLOR_DODGE,
+      texture: texture
+    });
+    textureEffect.blendMode.opacity.value = 0.2;
+  })
+  scene.background = spaceTexture;
+
+  renderer = new THREE.WebGLRenderer();
+  scene.fog = new THREE.FogExp2(0x03544e, 0.00002);
+  renderer.setClearColor(scene.fog.color);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  let loader = new THREE.TextureLoader();
+
+  loader.load("/img/smoke.png", function(texture){
+
+    const cloudGeo = new THREE.PlaneBufferGeometry(500,500);
+    const cloudMaterial = new THREE.MeshLambertMaterial({
+      map: texture,
+      transparent: true
+    });
+
+    for(let p=0; p<50; p++) {
+      let cloud = new THREE.Mesh(cloudGeo,cloudMaterial);
+      cloud.position.set(
+        Math.random()*800 - 400,
+        400,
+        Math.random()*450 - 500
+      );
+      cloud.rotation.x = 1.16;
+      cloud.rotation.y = -0.12;
+      cloud.rotation.z = Math.random()*360;
+      cloud.material.opacity = 0.6;
+      cloudParticles.push(cloud);
+      scene.add(cloud);
+    }
+    animate();
+  });
+}
+window.addEventListener("resize", onWindowResize, false);
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function moveCamera() {
+    const t = document.body.getBoundingClientRect().top;
+
+    chris.rotation.y += 0.02;
+    chris.rotation.z += 0.02;
+
+    chris.position.y = (0.2*-t) + initChrisY;
+    chris.position.x = (0.05*-t) + initChrisX;
+
+}
+
+document.body.onscroll = moveCamera
+
+const bloomEffect = new POSTPROCESSING.BloomEffect({
+    blendFunction: POSTPROCESSING.BlendFunction.COLOR_DODGE,
+    kernelSize: POSTPROCESSING.KernelSize.SMALL,
+    useLuminanceFilter: true,
+    luminanceThreshold: 0.3,
+    luminanceSmoothing: 0.75
+  });
+bloomEffect.blendMode.opacity.value = 1.5;
+
+function animate() {
+  cloudParticles.forEach(p => {
+    p.rotation.z -=0.002;
+  });
+
+  if(Math.random() > 0.93 || flash.power > 100) {
+    if(flash.power < 100) 
+      flash.position.set(
+        Math.random()*400,
+        300 + Math.random() *200,
+        100
+      );
+    flash.power = 50 + Math.random() * 500;
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+init();
